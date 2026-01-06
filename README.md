@@ -24,47 +24,215 @@
 - [✅ テスト仕様書](test-specification.md) - テストケースとテスト計画
 - [📘 開発ガイド](CLAUDE.md) - 開発時の規約とガイドライン
 
-## 技術スタック（予定）
+## 技術スタック
 
 ### バックエンド
-- 言語: Node.js / Python / Go（検討中）
-- フレームワーク: Express / FastAPI / Gin（検討中）
-- データベース: PostgreSQL 15+ / MySQL 8.0+
-- 認証: JWT (JSON Web Token)
+- **言語**: TypeScript (Node.js 20.x)
+- **フレームワーク**: Express.js 4.x
+- **ORM**: Prisma 5.x
+- **データベース**: PostgreSQL 15.x
+- **認証**: JWT (jsonwebtoken + bcrypt)
+- **バリデーション**: Zod
 
 ### フロントエンド
-- フレームワーク: React / Vue.js / Next.js（検討中）
-- UIライブラリ: Material-UI / Ant Design / Tailwind CSS（検討中）
+- **フレームワーク**: Next.js 14.x (App Router)
+- **言語**: TypeScript
+- **UIライブラリ**: Tailwind CSS 3.x + shadcn/ui
+- **状態管理**: Zustand
+- **フォーム管理**: React Hook Form + Zod
+- **HTTP通信**: Axios
 
 ### インフラ
-- コンテナ: Docker
-- CI/CD: GitHub Actions
+- **コンテナ**: Docker + Docker Compose
+- **CI/CD**: GitHub Actions
+- **ホスティング**: Vercel (フロント) + Railway (バック)
 
-## プロジェクト構成（予定）
+詳細は[CLAUDE.md](CLAUDE.md)を参照してください。
+
+## プロジェクト構成
 
 ```
 sales-report-system/
-├── docs/                      # 仕様書（現在のルートに配置中）
-├── backend/                   # バックエンド
-├── frontend/                  # フロントエンド
-├── database/                  # データベース設定
-└── docker-compose.yml        # Docker構成
+├── backend/                   # バックエンド (Express + TypeScript + Prisma)
+│   ├── src/
+│   │   ├── routes/           # ルーティング
+│   │   ├── controllers/      # コントローラー
+│   │   ├── middlewares/      # ミドルウェア
+│   │   ├── utils/            # ユーティリティ
+│   │   └── index.ts          # エントリーポイント
+│   ├── prisma/
+│   │   └── schema.prisma     # Prismaスキーマ
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── Dockerfile
+├── frontend/                  # フロントエンド (Next.js 14 + TypeScript)
+│   ├── app/                  # App Router
+│   │   ├── components/       # コンポーネント
+│   │   ├── lib/              # ライブラリ
+│   │   ├── hooks/            # カスタムフック
+│   │   └── types/            # 型定義
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── tailwind.config.ts
+│   └── Dockerfile
+├── docker-compose.yml        # Docker構成
+├── requirements.md           # 要件定義書
+├── screen-design.md          # 画面定義書
+├── api-specification.md      # API仕様書
+├── test-specification.md     # テスト仕様書
+├── CLAUDE.md                 # 開発ガイド
+└── README.md                 # このファイル
 ```
 
 ## 開発状況
-
-現在は要件定義フェーズが完了し、以下のドキュメントが作成済みです：
 
 - ✅ 要件定義書
 - ✅ 画面定義書
 - ✅ API仕様書
 - ✅ テスト仕様書
-- ⏳ 技術スタック選定中
-- ⏳ 開発環境構築予定
+- ✅ 技術スタック選定完了
+- ✅ 開発環境構築完了
+- ⏳ バックエンドAPI実装予定
+- ⏳ フロントエンド実装予定
 
-## セットアップ（準備中）
+## セットアップ
 
-詳細なセットアップ手順は、技術スタック選定後に記載予定です。
+### 前提条件
+
+- Node.js 20.x以上
+- Docker & Docker Compose
+- Git
+
+### 1. リポジトリのクローン
+
+```bash
+git clone https://github.com/stayfoolish01/sales-report-system.git
+cd sales-report-system
+```
+
+### 2. 環境変数の設定
+
+#### バックエンド
+```bash
+cd backend
+cp .env.example .env
+# .envファイルを編集してデータベース接続情報などを設定
+```
+
+#### フロントエンド
+```bash
+cd frontend
+cp .env.example .env.local
+# .env.localファイルを編集してAPI URLなどを設定
+```
+
+### 3. Dockerを使用した起動（推奨）
+
+```bash
+# ルートディレクトリで実行
+docker-compose up -d
+```
+
+これにより以下が起動します：
+- PostgreSQL (ポート 5432)
+- バックエンド (ポート 3001)
+- フロントエンド (ポート 3000)
+
+#### Prismaマイグレーション実行
+
+```bash
+docker-compose exec backend npx prisma migrate dev
+```
+
+#### アクセス
+
+- フロントエンド: http://localhost:3000
+- バックエンドAPI: http://localhost:3001
+- Health Check: http://localhost:3001/health
+
+### 4. ローカル環境での起動（Docker未使用）
+
+#### バックエンド
+
+```bash
+cd backend
+npm install
+cp .env.example .env
+# .envファイルを編集
+
+# PostgreSQLを別途起動しておく
+
+# Prismaマイグレーション
+npx prisma migrate dev
+npx prisma generate
+
+# 開発サーバー起動
+npm run dev
+```
+
+#### フロントエンド
+
+```bash
+cd frontend
+npm install
+cp .env.example .env.local
+# .env.localファイルを編集
+
+# 開発サーバー起動
+npm run dev
+```
+
+### 5. 開発用コマンド
+
+#### バックエンド
+```bash
+npm run dev          # 開発サーバー起動
+npm run build        # ビルド
+npm run start        # 本番起動
+npm run lint         # Lint実行
+npm run format       # フォーマット
+npm run test         # テスト実行
+npm run prisma:studio # Prisma Studio起動
+```
+
+#### フロントエンド
+```bash
+npm run dev          # 開発サーバー起動
+npm run build        # ビルド
+npm run start        # 本番起動
+npm run lint         # Lint実行
+npm run format       # フォーマット
+```
+
+## トラブルシューティング
+
+### ポートが既に使用されている
+
+```bash
+# 使用中のポートを確認
+# Windows
+netstat -ano | findstr :3000
+netstat -ano | findstr :3001
+netstat -ano | findstr :5432
+
+# プロセスを終了するか、docker-compose.ymlでポート番号を変更
+```
+
+### Dockerコンテナのログ確認
+
+```bash
+docker-compose logs backend
+docker-compose logs frontend
+docker-compose logs database
+```
+
+### データベースのリセット
+
+```bash
+docker-compose down -v
+docker-compose up -d
+docker-compose exec backend npx prisma migrate dev
+```
 
 ## ライセンス
 

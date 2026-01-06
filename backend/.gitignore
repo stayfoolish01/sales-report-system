@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+
+# Build output
+dist/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Test coverage
+coverage/
+
+# Prisma
+prisma/migrations/*.sql
+!prisma/migrations/migration_lock.toml
+
+# Temporary files
+*.tmp
+.DS_Store

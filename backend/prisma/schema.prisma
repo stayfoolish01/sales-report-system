@@ -1,0 +1,121 @@
+// Prisma schema for 営業日報システム (Sales Report System)
+// データベース: PostgreSQL 15.x
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 営業マスタ (Sales Staff)
+model SalesStaff {
+  salesId    Int      @id @default(autoincrement()) @map("sales_id")
+  name       String   @db.VarChar(50)
+  email      String   @unique @db.VarChar(255)
+  password   String   @db.VarChar(255)
+  department String   @db.VarChar(50)
+  position   String?  @db.VarChar(50)
+  managerId  Int?     @map("manager_id")
+  role       Role     @default(GENERAL)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  manager      SalesStaff?   @relation("ManagerSubordinate", fields: [managerId], references: [salesId], onDelete: SetNull)
+  subordinates SalesStaff[]  @relation("ManagerSubordinate")
+  reports      DailyReport[]
+  comments     Comment[]
+
+  @@map("sales_staff")
+}
+
+// 権限レベル
+enum Role {
+  GENERAL // 一般営業
+  ADMIN   // 上長
+}
+
+// 日報 (Daily Report)
+model DailyReport {
+  reportId   Int      @id @default(autoincrement()) @map("report_id")
+  salesId    Int      @map("sales_id")
+  reportDate DateTime @map("report_date") @db.Date
+  problem    String?  @db.Text
+  plan       String?  @db.Text
+  status     Status   @default(DRAFT)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  salesStaff   SalesStaff    @relation(fields: [salesId], references: [salesId], onDelete: Cascade)
+  visitRecords VisitRecord[]
+  comments     Comment[]
+
+  @@unique([salesId, reportDate])
+  @@map("daily_report")
+}
+
+// 日報ステータス
+enum Status {
+  DRAFT     // 下書き
+  SUBMITTED // 提出済み
+}
+
+// 訪問記録 (Visit Record)
+model VisitRecord {
+  visitId      Int      @id @default(autoincrement()) @map("visit_id")
+  reportId     Int      @map("report_id")
+  customerId   Int      @map("customer_id")
+  visitContent String   @map("visit_content") @db.Text
+  visitOrder   Int      @map("visit_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  report   DailyReport @relation(fields: [reportId], references: [reportId], onDelete: Cascade)
+  customer Customer    @relation(fields: [customerId], references: [customerId], onDelete: Restrict)
+
+  @@map("visit_record")
+}
+
+// 顧客マスタ (Customer)
+model Customer {
+  customerId   Int      @id @default(autoincrement()) @map("customer_id")
+  customerName String   @map("customer_name") @db.VarChar(50)
+  companyName  String   @map("company_name") @db.VarChar(100)
+  department   String?  @db.VarChar(50)
+  phone        String?  @db.VarChar(20)
+  email        String?  @db.VarChar(255)
+  address      String?  @db.Text
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  visitRecords VisitRecord[]
+
+  @@map("customer")
+}
+
+// コメント (Comment)
+model Comment {
+  commentId      Int         @id @default(autoincrement()) @map("comment_id")
+  reportId       Int         @map("report_id")
+  commentType    CommentType @map("comment_type")
+  commentContent String      @map("comment_content") @db.Text
+  commenterId    Int         @map("commenter_id")
+  createdAt      DateTime    @default(now()) @map("created_at")
+
+  // Relations
+  report    DailyReport @relation(fields: [reportId], references: [reportId], onDelete: Cascade)
+  commenter SalesStaff  @relation(fields: [commenterId], references: [salesId], onDelete: Cascade)
+
+  @@map("comment")
+}
+
+// コメント種別
+enum CommentType {
+  PROBLEM // 課題・相談へのコメント
+  PLAN    // 明日の予定へのコメント
+}
