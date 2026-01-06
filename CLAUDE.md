@@ -181,25 +181,85 @@ RESTful APIの詳細仕様（エンドポイント、リクエスト・レスポ
 4. 関連する実装をすべて更新
 5. テストケースを追加・更新
 
-## 技術スタック（予定）
+## 技術スタック
 
 ### バックエンド
-- 言語: Node.js / Python / Go（検討中）
-- フレームワーク: Express / FastAPI / Gin（検討中）
-- データベース: PostgreSQL 15+ / MySQL 8.0+
-- 認証: JWT
-- ORM: Prisma / SQLAlchemy / GORM（検討中）
+- **言語**: TypeScript (Node.js 20.x LTS)
+- **ランタイム**: Node.js 20.x LTS
+- **フレームワーク**: Express.js 4.x
+- **ORM**: Prisma 5.x
+- **データベース**: PostgreSQL 15.x
+- **認証**: jsonwebtoken + bcrypt
+- **バリデーション**: Zod
+- **API文書化**: Swagger (OpenAPI 3.0)
+- **環境変数管理**: dotenv
 
 ### フロントエンド
-- フレームワーク: React / Vue.js / Next.js（検討中）
-- 状態管理: Redux / Zustand / Context API（検討中）
-- UIライブラリ: Material-UI / Ant Design / Tailwind CSS（検討中）
-- ビルドツール: Vite / Webpack
+- **フレームワーク**: Next.js 14.x (App Router)
+- **言語**: TypeScript
+- **UIライブラリ**: Tailwind CSS 3.x + shadcn/ui
+- **状態管理**: Zustand
+- **フォーム管理**: React Hook Form + Zod
+- **HTTP通信**: Axios
+- **日付処理**: date-fns
+- **アイコン**: Lucide React
 
-### インフラ
-- コンテナ: Docker
-- CI/CD: GitHub Actions
-- ホスティング: AWS / GCP / Vercel（検討中）
+### 開発ツール
+- **パッケージマネージャー**: npm / pnpm
+- **リンター**: ESLint
+- **フォーマッター**: Prettier
+- **型チェック**: TypeScript Compiler
+- **Git Hooks**: Husky + lint-staged
+
+### テスト
+- **ユニットテスト**: Jest
+- **E2Eテスト**: Playwright (検討中)
+- **APIテスト**: Supertest
+- **フロントエンドテスト**: React Testing Library
+
+### インフラ・デプロイ
+- **コンテナ**: Docker + Docker Compose
+- **CI/CD**: GitHub Actions
+- **ホスティング（フロント）**: Vercel
+- **ホスティング（バック）**: Railway / Render
+- **データベースホスティング**: Supabase / Railway
+
+### 技術選定の理由
+
+#### TypeScript統一
+- フロント・バック両方でTypeScriptを使用することで型の共有が可能
+- 型安全性によりバグの早期発見とリファクタリングの容易性を実現
+- APIのリクエスト/レスポンス型を共有できる
+
+#### Next.js 14 (App Router)
+- React Server Componentsで初期表示が高速
+- App Routerで最新のReact機能を活用
+- ファイルベースルーティングで直感的な開発
+- Vercelで簡単デプロイ
+
+#### Prisma
+- 型安全なDB操作
+- マイグレーション管理が優れている
+- Prisma Studioでデータの可視化が容易
+- TypeScriptとの統合が完璧
+
+#### Tailwind CSS + shadcn/ui
+- ユーティリティファーストで開発速度が速い
+- shadcn/uiで美しいコンポーネントを素早く構築
+- カスタマイズ性が高い
+- バンドルサイズが小さい
+
+#### Zustand
+- シンプルで学習コストが低い
+- Reduxより軽量
+- TypeScriptサポートが優れている
+- グローバル状態管理に最適
+
+#### Zod
+- TypeScriptファーストなバリデーションライブラリ
+- React Hook FormやPrismaと相性が良い
+- フロント・バック両方で使用可能
+- 型推論が強力
 
 ## プロジェクト構成（予定）
 
