@@ -1,0 +1,53 @@
+name: バグ報告
+description: バグの報告と修正タスク
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## バグ報告
+        発見したバグを報告してください。
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 発生箇所
+      description: どこで発生しましたか？
+      options:
+        - backend
+        - frontend
+        - database
+        - その他
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: バグの内容
+      description: 何が起きましたか？
+      placeholder: |
+        エラーメッセージや期待される動作と実際の動作の違いを記載
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 再現手順
+      description: どうやって再現できますか？
+      placeholder: |
+        1. XXX画面を開く
+        2. XXXボタンをクリック
+        3. エラーが表示される
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待される動作
+      description: 本来どうあるべきですか？
+    validations:
+      required: true

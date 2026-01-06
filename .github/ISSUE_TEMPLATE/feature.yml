@@ -1,0 +1,69 @@
+name: 機能実装
+description: 新機能の実装タスク
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 機能実装タスク
+        仕様書に基づいた機能実装のIssueです。
+
+  - type: dropdown
+    id: phase
+    attributes:
+      label: フェーズ
+      description: どのフェーズの実装ですか？
+      options:
+        - Phase 1 - 基盤実装（認証・DB）
+        - Phase 2 - 日報機能
+        - Phase 3 - コメント・マスタ管理
+        - Phase 4 - テスト・デプロイ
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 実装領域
+      description: バックエンドかフロントエンドか
+      options:
+        - backend
+        - frontend
+        - database
+        - both
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 実装内容
+      description: 何を実装しますか？
+      placeholder: |
+        - API仕様書の XX エンドポイント実装
+        - 画面定義書の SC-XXX 画面実装
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 完了条件
+      description: どうなったら完了ですか？
+      placeholder: |
+        - [ ] APIが正しくレスポンスを返す
+        - [ ] バリデーションが動作する
+        - [ ] テストがパスする
+    validations:
+      required: true
+
+  - type: textarea
+    id: reference
+    attributes:
+      label: 参照ドキュメント
+      description: 関連する仕様書のセクション
+      placeholder: |
+        - API仕様書: X.X.X
+        - 画面定義書: SC-XXX
+        - 要件定義書: X.X
