@@ -114,29 +114,29 @@ export default function DashboardPage() {
           icon={<FilePlus className="h-6 w-6" />}
           title="日報作成"
           description="本日の日報を作成する"
-          disabled
+
         />
         <MenuCard
           href="/reports"
           icon={<FileText className="h-6 w-6" />}
           title="日報一覧"
           description="過去の日報を確認する"
-          disabled
+
         />
         <MenuCard
           href="/customers"
           icon={<Users className="h-6 w-6" />}
           title="顧客マスタ"
           description="顧客情報を管理する"
-          disabled
+
         />
         {isAdmin && (
           <MenuCard
-            href="/sales-staff"
+            href="/sales"
             icon={<UserCog className="h-6 w-6" />}
             title="営業マスタ"
             description="営業担当者を管理する"
-            disabled
+  
           />
         )}
       </div>
