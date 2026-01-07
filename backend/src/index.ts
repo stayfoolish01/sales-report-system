@@ -1,6 +1,7 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import authRoutes from './routes/auth';
 
 dotenv.config();
 
@@ -24,13 +25,8 @@ app.get('/health', (_req: Request, res: Response) => {
   });
 });
 
-// API routes will be added here
-app.get('/api/v1', (_req: Request, res: Response) => {
-  res.json({
-    success: true,
-    message: 'Welcome to Sales Report API v1',
-  });
-});
+// API routes
+app.use('/api/v1/auth', authRoutes);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {
@@ -44,7 +40,7 @@ app.use((_req: Request, res: Response) => {
 });
 
 // Error handler
-app.use((err: Error, _req: Request, res: Response) => {
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   console.error(err.stack);
   res.status(500).json({
     success: false,
