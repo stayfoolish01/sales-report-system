@@ -5,6 +5,7 @@ import authRoutes from './routes/auth';
 import reportsRoutes from './routes/reports';
 import visitsRoutes from './routes/visits';
 import commentsRoutes from './routes/comments';
+import customersRoutes from './routes/customers';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler';
 
 dotenv.config();
@@ -34,6 +35,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/reports', reportsRoutes);
 app.use('/api/v1/reports/:reportId/visits', visitsRoutes);
 app.use('/api/v1/reports/:reportId/comments', commentsRoutes);
+app.use('/api/v1/customers', customersRoutes);
 
 // 404 handler - すべてのルートの後に配置
 app.use(notFoundHandler);
