@@ -456,3 +456,89 @@ export const deleteReport = async (
     next(error);
   }
 };
+
+/**
+ * 日報ステータス更新（提出/下書きに戻す）
+ *
+ * PATCH /api/v1/reports/:id/status
+ */
+export const updateStatus = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const reportId = parseInt(req.params.id, 10);
+
+    if (isNaN(reportId)) {
+      throw new ValidationError('日報IDが無効です');
+    }
+
+    const { status } = req.body;
+    const salesId = req.user!.salesId;
+    const isAdmin = req.user!.role === 'ADMIN';
+
+    // 日報を取得
+    const existingReport = await prisma.dailyReport.findUnique({
+      where: { reportId },
+    });
+
+    if (!existingReport) {
+      throw new ValidationError('日報が見つかりません');
+    }
+
+    // 権限チェック
+    // - 提出(SUBMITTED): 自分の日報のみ
+    // - 下書きに戻す(DRAFT): 自分の日報または管理者
+    if (status === 'SUBMITTED') {
+      if (existingReport.salesId !== salesId) {
+        throw new ForbiddenError('この日報を提出する権限がありません');
+      }
+    } else if (status === 'DRAFT') {
+      if (!isAdmin && existingReport.salesId !== salesId) {
+        throw new ForbiddenError('この日報のステータスを変更する権限がありません');
+      }
+    }
+
+    // 同じステータスへの変更は無視
+    if (existingReport.status === status) {
+      throw new ValidationError(`既に${status === 'SUBMITTED' ? '提出済み' : '下書き'}です`);
+    }
+
+    // ステータスを更新
+    const report = await prisma.dailyReport.update({
+      where: { reportId },
+      data: { status },
+      include: {
+        salesStaff: {
+          select: {
+            salesId: true,
+            name: true,
+            department: true,
+          },
+        },
+      },
+    });
+
+    // レスポンス形式に変換
+    const responseData = {
+      report_id: report.reportId,
+      report_date: report.reportDate.toISOString().split('T')[0],
+      problem: report.problem,
+      plan: report.plan,
+      status: report.status.toLowerCase(),
+      created_at: report.createdAt.toISOString(),
+      updated_at: report.updatedAt.toISOString(),
+      sales_staff: {
+        sales_id: report.salesStaff.salesId,
+        name: report.salesStaff.name,
+        department: report.salesStaff.department,
+      },
+    };
+
+    const message = status === 'SUBMITTED' ? '日報を提出しました' : '日報を下書きに戻しました';
+    res.json(createSuccessResponse(responseData, message));
+  } catch (error) {
+    next(error);
+  }
+};

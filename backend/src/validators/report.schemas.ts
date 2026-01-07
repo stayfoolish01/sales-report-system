@@ -117,8 +117,21 @@ export const listReportsQuerySchema = z.object({
 });
 
 /**
+ * 日報ステータス更新リクエストのバリデーションスキーマ
+ *
+ * PATCH /api/v1/reports/:id/status
+ */
+export const updateStatusSchema = z.object({
+  status: z.enum(['DRAFT', 'SUBMITTED'], {
+    required_error: 'ステータスは必須です',
+    invalid_type_error: 'ステータスはDRAFTまたはSUBMITTEDである必要があります',
+  }),
+});
+
+/**
  * 型定義
  */
 export type CreateReportRequest = z.infer<typeof createReportSchema>;
 export type UpdateReportRequest = z.infer<typeof updateReportSchema>;
 export type ListReportsQuery = z.infer<typeof listReportsQuerySchema>;
+export type UpdateStatusRequest = z.infer<typeof updateStatusSchema>;
