@@ -9,8 +9,13 @@ import {
   listCustomers,
   getCustomer,
   searchCustomers,
+  createCustomer,
+  updateCustomer,
+  deleteCustomer,
 } from '../controllers/customers';
 import { authenticate } from '../middlewares/auth';
+import { validate } from '../middlewares/validate';
+import { createCustomerSchema, updateCustomerSchema } from '../validators/customer.schemas';
 
 const router = Router();
 
@@ -35,5 +40,23 @@ router.get('/', listCustomers);
  * 顧客詳細取得
  */
 router.get('/:customerId', getCustomer);
+
+/**
+ * POST /api/v1/customers
+ * 顧客作成
+ */
+router.post('/', validate(createCustomerSchema), createCustomer);
+
+/**
+ * PUT /api/v1/customers/:customerId
+ * 顧客更新
+ */
+router.put('/:customerId', validate(updateCustomerSchema), updateCustomer);
+
+/**
+ * DELETE /api/v1/customers/:customerId
+ * 顧客削除
+ */
+router.delete('/:customerId', deleteCustomer);
 
 export default router;

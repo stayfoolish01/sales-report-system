@@ -1,13 +1,13 @@
 /**
  * 顧客マスタコントローラー
  *
- * 顧客マスタの参照操作を処理します。
+ * 顧客マスタのCRUD操作を処理します。
  */
 
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClient, Prisma } from '@prisma/client';
 import { createSuccessResponse, createPaginatedResponse } from '../types/response';
-import { ValidationError } from '../errors/AuthError';
+import { ValidationError, ForbiddenError } from '../errors/AuthError';
 import { listCustomersQuerySchema } from '../validators/customer.schemas';
 
 const prisma = new PrismaClient();
@@ -170,6 +170,186 @@ export const searchCustomers = async (
     }));
 
     res.json(createSuccessResponse({ customers: items }));
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * 顧客作成
+ *
+ * POST /api/v1/customers
+ */
+export const createCustomer = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    // 管理者のみ作成可能
+    if (req.user!.role !== 'ADMIN') {
+      throw new ForbiddenError('顧客を作成する権限がありません');
+    }
+
+    const { customer_name, company_name, department, phone, email, address } = req.body;
+
+    // 顧客を作成
+    const customer = await prisma.customer.create({
+      data: {
+        customerName: customer_name,
+        companyName: company_name,
+        department: department || null,
+        phone: phone || null,
+        email: email || null,
+        address: address || null,
+      },
+    });
+
+    // レスポンス形式に変換
+    const responseData = {
+      customer_id: customer.customerId,
+      customer_name: customer.customerName,
+      company_name: customer.companyName,
+      department: customer.department,
+      phone: customer.phone,
+      email: customer.email,
+      address: customer.address,
+      created_at: customer.createdAt.toISOString(),
+      updated_at: customer.updatedAt.toISOString(),
+    };
+
+    res.status(201).json(createSuccessResponse(responseData, '顧客を作成しました'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * 顧客更新
+ *
+ * PUT /api/v1/customers/:customerId
+ */
+export const updateCustomer = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    // 管理者のみ更新可能
+    if (req.user!.role !== 'ADMIN') {
+      throw new ForbiddenError('顧客を更新する権限がありません');
+    }
+
+    const customerId = parseInt(req.params.customerId, 10);
+
+    if (isNaN(customerId)) {
+      throw new ValidationError('顧客IDが無効です');
+    }
+
+    const { customer_name, company_name, department, phone, email, address } = req.body;
+
+    // 顧客の存在確認
+    const existingCustomer = await prisma.customer.findUnique({
+      where: { customerId },
+    });
+
+    if (!existingCustomer) {
+      throw new ValidationError('顧客が見つかりません');
+    }
+
+    // 更新データを構築
+    const updateData: Prisma.CustomerUpdateInput = {};
+
+    if (customer_name !== undefined) {
+      updateData.customerName = customer_name;
+    }
+    if (company_name !== undefined) {
+      updateData.companyName = company_name;
+    }
+    if (department !== undefined) {
+      updateData.department = department;
+    }
+    if (phone !== undefined) {
+      updateData.phone = phone;
+    }
+    if (email !== undefined) {
+      updateData.email = email;
+    }
+    if (address !== undefined) {
+      updateData.address = address;
+    }
+
+    // 顧客を更新
+    const customer = await prisma.customer.update({
+      where: { customerId },
+      data: updateData,
+    });
+
+    // レスポンス形式に変換
+    const responseData = {
+      customer_id: customer.customerId,
+      customer_name: customer.customerName,
+      company_name: customer.companyName,
+      department: customer.department,
+      phone: customer.phone,
+      email: customer.email,
+      address: customer.address,
+      created_at: customer.createdAt.toISOString(),
+      updated_at: customer.updatedAt.toISOString(),
+    };
+
+    res.json(createSuccessResponse(responseData, '顧客を更新しました'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * 顧客削除
+ *
+ * DELETE /api/v1/customers/:customerId
+ */
+export const deleteCustomer = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    // 管理者のみ削除可能
+    if (req.user!.role !== 'ADMIN') {
+      throw new ForbiddenError('顧客を削除する権限がありません');
+    }
+
+    const customerId = parseInt(req.params.customerId, 10);
+
+    if (isNaN(customerId)) {
+      throw new ValidationError('顧客IDが無効です');
+    }
+
+    // 顧客の存在確認
+    const existingCustomer = await prisma.customer.findUnique({
+      where: { customerId },
+    });
+
+    if (!existingCustomer) {
+      throw new ValidationError('顧客が見つかりません');
+    }
+
+    // 訪問記録が存在するか確認
+    const visitCount = await prisma.visitRecord.count({
+      where: { customerId },
+    });
+
+    if (visitCount > 0) {
+      throw new ValidationError('この顧客には訪問記録が存在するため削除できません');
+    }
+
+    // 顧客を削除
+    await prisma.customer.delete({
+      where: { customerId },
+    });
+
+    res.json(createSuccessResponse(null, '顧客を削除しました'));
   } catch (error) {
     next(error);
   }
