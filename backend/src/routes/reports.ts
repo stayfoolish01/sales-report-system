@@ -11,10 +11,11 @@ import {
   createReport,
   updateReport,
   deleteReport,
+  updateStatus,
 } from '../controllers/reports';
 import { authenticate } from '../middlewares/auth';
 import { validate } from '../middlewares/validate';
-import { createReportSchema, updateReportSchema } from '../validators/report.schemas';
+import { createReportSchema, updateReportSchema, updateStatusSchema } from '../validators/report.schemas';
 
 const router = Router();
 
@@ -50,5 +51,11 @@ router.put('/:id', validate(updateReportSchema), updateReport);
  * 日報削除
  */
 router.delete('/:id', deleteReport);
+
+/**
+ * PATCH /api/v1/reports/:id/status
+ * 日報ステータス更新（提出/下書きに戻す）
+ */
+router.patch('/:id/status', validate(updateStatusSchema), updateStatus);
 
 export default router;
