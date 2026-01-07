@@ -19,8 +19,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Loading } from '@/components/Loading';
 import { PageError } from '@/components/ErrorMessage';
+import { CommentSection } from '@/components/CommentSection';
 import { useAuthStore } from '@/lib/stores/authStore';
-import type { ReportDetail, ReportStatus } from '@/lib/types/report';
+import type { ReportDetail, ReportStatus, Comment } from '@/lib/types/report';
 
 // モックデータ（API実装後に削除）
 const mockReportDetail: ReportDetail = {
@@ -102,7 +103,9 @@ export default function ReportDetailPage() {
   const [report, setReport] = useState<ReportDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isCommentLoading, setIsCommentLoading] = useState(false);
 
+  const currentUserId = user?.sales_id ?? 0;
   const isOwner = user?.sales_id === report?.sales.sales_id;
   const canEdit = isOwner && report?.status === 'draft';
   const canDelete = isOwner;
@@ -145,6 +148,104 @@ export default function ReportDetailPage() {
     } catch (err) {
       console.error('Failed to delete report:', err);
       alert('日報の削除に失敗しました');
+    }
+  };
+
+  // コメント追加（モック）
+  const handleAddComment = async (
+    commentType: 'problem' | 'plan',
+    content: string
+  ) => {
+    if (!report) return;
+    setIsCommentLoading(true);
+    try {
+      // TODO: API呼び出し
+      // await commentsApi.createComment({ report_id: report.report_id, comment_type, content });
+
+      // モック処理：コメントをローカルで追加
+      const newComment: Comment = {
+        comment_id: Date.now(),
+        comment_type: commentType,
+        comment_content: content,
+        commenter: {
+          sales_id: currentUserId,
+          name: user?.name ?? '自分',
+          position: user?.role === 'admin' ? '管理者' : undefined,
+        },
+        created_at: new Date().toISOString(),
+      };
+
+      setReport({
+        ...report,
+        comments: {
+          ...report.comments,
+          [commentType]: [...report.comments[commentType], newComment],
+        },
+      });
+    } catch (err) {
+      console.error('Failed to add comment:', err);
+      throw err;
+    } finally {
+      setIsCommentLoading(false);
+    }
+  };
+
+  // コメント編集（モック）
+  const handleEditComment = async (
+    commentType: 'problem' | 'plan',
+    commentId: number,
+    content: string
+  ) => {
+    if (!report) return;
+    setIsCommentLoading(true);
+    try {
+      // TODO: API呼び出し
+      // await commentsApi.updateComment(commentId, { content });
+
+      // モック処理：コメントをローカルで更新
+      setReport({
+        ...report,
+        comments: {
+          ...report.comments,
+          [commentType]: report.comments[commentType].map((c) =>
+            c.comment_id === commentId ? { ...c, comment_content: content } : c
+          ),
+        },
+      });
+    } catch (err) {
+      console.error('Failed to edit comment:', err);
+      throw err;
+    } finally {
+      setIsCommentLoading(false);
+    }
+  };
+
+  // コメント削除（モック）
+  const handleDeleteComment = async (
+    commentType: 'problem' | 'plan',
+    commentId: number
+  ) => {
+    if (!report) return;
+    setIsCommentLoading(true);
+    try {
+      // TODO: API呼び出し
+      // await commentsApi.deleteComment(commentId);
+
+      // モック処理：コメントをローカルで削除
+      setReport({
+        ...report,
+        comments: {
+          ...report.comments,
+          [commentType]: report.comments[commentType].filter(
+            (c) => c.comment_id !== commentId
+          ),
+        },
+      });
+    } catch (err) {
+      console.error('Failed to delete comment:', err);
+      throw err;
+    } finally {
+      setIsCommentLoading(false);
     }
   };
 
@@ -276,39 +377,47 @@ export default function ReportDetailPage() {
       {/* 課題・相談（Problem） */}
       <Section title="課題・相談（Problem）" icon={<AlertTriangle className="h-5 w-5" />}>
         {report.problem ? (
-          <div className="rounded-lg border p-4">
+          <div className="rounded-lg border p-4 mb-4">
             <p className="whitespace-pre-wrap">{report.problem}</p>
           </div>
         ) : (
-          <p className="text-muted-foreground text-center py-4">記載なし</p>
+          <p className="text-muted-foreground text-center py-4 mb-4">記載なし</p>
         )}
-        {/* コメント表示（Phase 3で実装） */}
-        {report.comments.problem.length > 0 && (
-          <div className="mt-4 space-y-3">
-            {report.comments.problem.map((comment) => (
-              <CommentCard key={comment.comment_id} comment={comment} />
-            ))}
-          </div>
-        )}
+        {/* コメントセクション */}
+        <CommentSection
+          comments={report.comments.problem}
+          currentUserId={currentUserId}
+          onAddComment={(content) => handleAddComment('problem', content)}
+          onEditComment={(commentId, content) =>
+            handleEditComment('problem', commentId, content)
+          }
+          onDeleteComment={(commentId) =>
+            handleDeleteComment('problem', commentId)
+          }
+          isLoading={isCommentLoading}
+        />
       </Section>
 
       {/* 明日の予定（Plan） */}
       <Section title="明日の予定（Plan）" icon={<Calendar className="h-5 w-5" />}>
         {report.plan ? (
-          <div className="rounded-lg border p-4">
+          <div className="rounded-lg border p-4 mb-4">
             <p className="whitespace-pre-wrap">{report.plan}</p>
           </div>
         ) : (
-          <p className="text-muted-foreground text-center py-4">記載なし</p>
+          <p className="text-muted-foreground text-center py-4 mb-4">記載なし</p>
         )}
-        {/* コメント表示（Phase 3で実装） */}
-        {report.comments.plan.length > 0 && (
-          <div className="mt-4 space-y-3">
-            {report.comments.plan.map((comment) => (
-              <CommentCard key={comment.comment_id} comment={comment} />
-            ))}
-          </div>
-        )}
+        {/* コメントセクション */}
+        <CommentSection
+          comments={report.comments.plan}
+          currentUserId={currentUserId}
+          onAddComment={(content) => handleAddComment('plan', content)}
+          onEditComment={(commentId, content) =>
+            handleEditComment('plan', commentId, content)
+          }
+          onDeleteComment={(commentId) => handleDeleteComment('plan', commentId)}
+          isLoading={isCommentLoading}
+        />
       </Section>
     </div>
   );
@@ -364,40 +473,5 @@ function StatusBadge({ status }: { status: ReportStatus }) {
       <FileEdit className="h-3 w-3" />
       下書き
     </span>
-  );
-}
-
-interface CommentCardProps {
-  comment: {
-    comment_id: number;
-    comment_content: string;
-    commenter: {
-      name: string;
-      position?: string;
-    };
-    created_at: string;
-  };
-}
-
-function CommentCard({ comment }: CommentCardProps) {
-  const formattedDate = format(new Date(comment.created_at), 'yyyy-MM-dd HH:mm', {
-    locale: ja,
-  });
-
-  return (
-    <div className="rounded-lg border bg-muted/30 p-4">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">💬 {comment.commenter.name}</span>
-          {comment.commenter.position && (
-            <span className="text-xs text-muted-foreground">
-              ({comment.commenter.position})
-            </span>
-          )}
-        </div>
-        <span className="text-xs text-muted-foreground">{formattedDate}</span>
-      </div>
-      <p className="text-sm whitespace-pre-wrap">{comment.comment_content}</p>
-    </div>
   );
 }
