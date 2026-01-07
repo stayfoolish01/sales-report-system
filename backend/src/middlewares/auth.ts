@@ -7,6 +7,11 @@
 
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import {
+  MissingTokenError,
+  InvalidTokenError,
+  ForbiddenError,
+} from '../errors/AuthError';
 
 /**
  * JWTペイロード型定義
@@ -37,14 +42,7 @@ export const authenticate = (
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {
-      res.status(401).json({
-        success: false,
-        error: {
-          code: 'UNAUTHORIZED',
-          message: '認証トークンが提供されていません',
-        },
-      });
-      return;
+      throw new MissingTokenError('認証トークンが提供されていません');
     }
 
     // "Bearer <token>" 形式から<token>部分を抽出
@@ -53,14 +51,7 @@ export const authenticate = (
       : authHeader;
 
     if (!token) {
-      res.status(401).json({
-        success: false,
-        error: {
-          code: 'UNAUTHORIZED',
-          message: '認証トークンが不正です',
-        },
-      });
-      return;
+      throw new MissingTokenError('認証トークンが不正です');
     }
 
     // JWT_SECRETの確認
@@ -82,39 +73,25 @@ export const authenticate = (
     // 次のミドルウェアへ
     next();
   } catch (error) {
-    // トークン検証エラー
+    // カスタムエラーの場合はそのまま返す
+    if (error instanceof MissingTokenError || error instanceof InvalidTokenError) {
+      res.status(error.statusCode).json(error.toJSON());
+      return;
+    }
+
+    // トークン検証エラー（jwt.JsonWebTokenErrorまたはTokenExpiredError）
     if (error instanceof jwt.JsonWebTokenError) {
-      res.status(401).json({
-        success: false,
-        error: {
-          code: 'UNAUTHORIZED',
-          message: '無効な認証トークンです',
-        },
-      });
+      const invalidTokenError = new InvalidTokenError(
+        error instanceof jwt.TokenExpiredError
+          ? '認証トークンの有効期限が切れています'
+          : '無効な認証トークンです'
+      );
+      res.status(invalidTokenError.statusCode).json(invalidTokenError.toJSON());
       return;
     }
 
-    // トークン期限切れエラー
-    if (error instanceof jwt.TokenExpiredError) {
-      res.status(401).json({
-        success: false,
-        error: {
-          code: 'UNAUTHORIZED',
-          message: '認証トークンの有効期限が切れています',
-        },
-      });
-      return;
-    }
-
-    // その他のエラー
-    console.error('Authentication error:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'INTERNAL_ERROR',
-        message: '認証処理中にエラーが発生しました',
-      },
-    });
+    // その他のエラーはnextに渡してグローバルエラーハンドラーで処理
+    next(error);
   }
 };
 
@@ -135,24 +112,14 @@ export const requireAdmin = (
   next: NextFunction
 ): void => {
   if (!req.user) {
-    res.status(401).json({
-      success: false,
-      error: {
-        code: 'UNAUTHORIZED',
-        message: '認証が必要です',
-      },
-    });
+    const missingTokenError = new MissingTokenError('認証が必要です');
+    res.status(missingTokenError.statusCode).json(missingTokenError.toJSON());
     return;
   }
 
   if (req.user.role !== 'ADMIN') {
-    res.status(403).json({
-      success: false,
-      error: {
-        code: 'FORBIDDEN',
-        message: '管理者権限が必要です',
-      },
-    });
+    const forbiddenError = new ForbiddenError('管理者権限が必要です');
+    res.status(forbiddenError.statusCode).json(forbiddenError.toJSON());
     return;
   }
 
