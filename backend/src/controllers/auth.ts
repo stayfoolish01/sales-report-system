@@ -8,6 +8,11 @@ import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { comparePassword } from '../utils/password';
 import { generateToken } from '../utils/jwt';
+import {
+  ValidationError,
+  InvalidCredentialsError,
+  UserNotFoundError,
+} from '../errors/AuthError';
 
 const prisma = new PrismaClient();
 
@@ -22,14 +27,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     // バリデーション
     if (!email || !password) {
-      res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'メールアドレスとパスワードは必須です',
-        },
-      });
-      return;
+      throw new ValidationError('メールアドレスとパスワードは必須です');
     }
 
     // ユーザー検索
@@ -46,28 +44,14 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     });
 
     if (!user) {
-      res.status(401).json({
-        success: false,
-        error: {
-          code: 'INVALID_CREDENTIALS',
-          message: 'メールアドレスまたはパスワードが正しくありません',
-        },
-      });
-      return;
+      throw new InvalidCredentialsError();
     }
 
     // パスワード検証
     const isPasswordValid = await comparePassword(password, user.password);
 
     if (!isPasswordValid) {
-      res.status(401).json({
-        success: false,
-        error: {
-          code: 'INVALID_CREDENTIALS',
-          message: 'メールアドレスまたはパスワードが正しくありません',
-        },
-      });
-      return;
+      throw new InvalidCredentialsError();
     }
 
     // JWTトークン生成
@@ -101,6 +85,16 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       },
     });
   } catch (error) {
+    // カスタムエラーの場合はそのまま返す
+    if (
+      error instanceof ValidationError ||
+      error instanceof InvalidCredentialsError
+    ) {
+      res.status(error.statusCode).json(error.toJSON());
+      return;
+    }
+
+    // その他のエラー
     console.error('Login error:', error);
     res.status(500).json({
       success: false,
@@ -153,14 +147,7 @@ export const me = async (req: Request, res: Response): Promise<void> => {
   try {
     // authenticateミドルウェアでreq.userに認証情報が格納されている
     if (!req.user) {
-      res.status(401).json({
-        success: false,
-        error: {
-          code: 'UNAUTHORIZED',
-          message: '認証が必要です',
-        },
-      });
-      return;
+      throw new ValidationError('認証が必要です');
     }
 
     // データベースから最新のユーザー情報を取得
@@ -177,14 +164,7 @@ export const me = async (req: Request, res: Response): Promise<void> => {
     });
 
     if (!user) {
-      res.status(404).json({
-        success: false,
-        error: {
-          code: 'USER_NOT_FOUND',
-          message: 'ユーザーが見つかりません',
-        },
-      });
-      return;
+      throw new UserNotFoundError();
     }
 
     // レスポンス
@@ -208,6 +188,16 @@ export const me = async (req: Request, res: Response): Promise<void> => {
       },
     });
   } catch (error) {
+    // カスタムエラーの場合はそのまま返す
+    if (
+      error instanceof ValidationError ||
+      error instanceof UserNotFoundError
+    ) {
+      res.status(error.statusCode).json(error.toJSON());
+      return;
+    }
+
+    // その他のエラー
     console.error('Get current user error:', error);
     res.status(500).json({
       success: false,
