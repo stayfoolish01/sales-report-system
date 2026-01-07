@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import reportsRoutes from './routes/reports';
 import visitsRoutes from './routes/visits';
+import commentsRoutes from './routes/comments';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler';
 
 dotenv.config();
@@ -32,6 +33,7 @@ app.get('/health', (_req, res) => {
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/reports', reportsRoutes);
 app.use('/api/v1/reports/:reportId/visits', visitsRoutes);
+app.use('/api/v1/reports/:reportId/comments', commentsRoutes);
 
 // 404 handler - すべてのルートの後に配置
 app.use(notFoundHandler);
