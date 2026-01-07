@@ -9,14 +9,15 @@ import { login, logout, me } from '../controllers/auth';
 import { authenticate } from '../middlewares/auth';
 import { validate } from '../middlewares/validate';
 import { loginSchema } from '../validators/auth.schemas';
+import { authRateLimiter } from '../middlewares/security';
 
 const router = Router();
 
 /**
  * POST /api/v1/auth/login
- * ログイン
+ * ログイン（レート制限: 15分間に5回まで）
  */
-router.post('/login', validate(loginSchema), login);
+router.post('/login', authRateLimiter, validate(loginSchema), login);
 
 /**
  * POST /api/v1/auth/logout
