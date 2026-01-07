@@ -1,7 +1,8 @@
-import express, { Request, Response, NextFunction } from 'express';
+import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
+import { errorHandler, notFoundHandler } from './middlewares/errorHandler';
 
 dotenv.config();
 
@@ -17,7 +18,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Health check endpoint
-app.get('/health', (_req: Request, res: Response) => {
+app.get('/health', (_req, res) => {
   res.json({
     success: true,
     message: 'Sales Report API is running',
@@ -28,28 +29,11 @@ app.get('/health', (_req: Request, res: Response) => {
 // API routes
 app.use('/api/v1/auth', authRoutes);
 
-// 404 handler
-app.use((_req: Request, res: Response) => {
-  res.status(404).json({
-    success: false,
-    error: {
-      code: 'NOT_FOUND',
-      message: 'エンドポイントが見つかりません',
-    },
-  });
-});
+// 404 handler - すべてのルートの後に配置
+app.use(notFoundHandler);
 
-// Error handler
-app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({
-    success: false,
-    error: {
-      code: 'INTERNAL_SERVER_ERROR',
-      message: 'サーバー内部エラーが発生しました',
-    },
-  });
-});
+// Global error handler - 最後に配置
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
