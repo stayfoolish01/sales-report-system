@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
+import reportsRoutes from './routes/reports';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler';
 
 dotenv.config();
@@ -28,6 +29,7 @@ app.get('/health', (_req, res) => {
 
 // API routes
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/reports', reportsRoutes);
 
 // 404 handler - すべてのルートの後に配置
 app.use(notFoundHandler);
@@ -41,4 +43,5 @@ app.listen(PORT, () => {
 });
 
 export default app;
+
 
