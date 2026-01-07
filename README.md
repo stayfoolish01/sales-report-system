@@ -92,8 +92,10 @@ sales-report-system/
 - ✅ テスト仕様書
 - ✅ 技術スタック選定完了
 - ✅ 開発環境構築完了
-- ⏳ バックエンドAPI実装予定
-- ⏳ フロントエンド実装予定
+- ✅ バックエンドAPI実装完了
+- ✅ フロントエンド実装完了
+- ✅ CI/CDパイプライン構築完了
+- ✅ E2Eテスト実装完了
 
 ## セットアップ
 
@@ -202,7 +204,33 @@ npm run build        # ビルド
 npm run start        # 本番起動
 npm run lint         # Lint実行
 npm run format       # フォーマット
+npm run test:e2e     # E2Eテスト実行
+npm run test:e2e:ui  # E2Eテスト（UIモード）
 ```
+
+## 本番デプロイ
+
+本番環境へのデプロイ手順については、以下のドキュメントを参照してください：
+
+- [デプロイガイド](docs/DEPLOYMENT.md) - Vercel/Railwayへのデプロイ手順
+- [Prismaマイグレーション](docs/PRISMA_MIGRATION.md) - DBマイグレーション戦略
+- [運用マニュアル](docs/OPERATIONS.md) - 運用・監視・障害対応
+
+### 環境変数（本番環境）
+
+#### バックエンド（Railway）
+| 変数名 | 説明 |
+|--------|------|
+| `DATABASE_URL` | PostgreSQL接続URL（自動設定） |
+| `JWT_SECRET` | JWT署名キー（32文字以上） |
+| `JWT_EXPIRES_IN` | JWTの有効期限 |
+| `NODE_ENV` | `production` |
+| `ALLOWED_ORIGINS` | フロントエンドURL |
+
+#### フロントエンド（Vercel）
+| 変数名 | 説明 |
+|--------|------|
+| `NEXT_PUBLIC_API_URL` | バックエンドAPI URL |
 
 ## トラブルシューティング
 
