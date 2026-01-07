@@ -1,19 +1,23 @@
-import type { Metadata } from 'next'
-import './globals.css'
+import type { Metadata } from 'next';
+import './globals.css';
+import { AuthProvider } from '@/components/providers/AuthProvider';
 
 export const metadata: Metadata = {
   title: '営業日報システム',
-  description: '営業担当者が日々の訪問活動を記録し、上長が確認・コメントできるシステム',
-}
+  description:
+    '営業担当者が日々の訪問活動を記録し、上長が確認・コメントできるシステム',
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="ja">
-      <body>{children}</body>
+      <body>
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
-  )
+  );
 }
