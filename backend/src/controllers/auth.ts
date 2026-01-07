@@ -23,12 +23,8 @@ const prisma = new PrismaClient();
  */
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
+    // バリデーションミドルウェアで検証済み
     const { email, password } = req.body;
-
-    // バリデーション
-    if (!email || !password) {
-      throw new ValidationError('メールアドレスとパスワードは必須です');
-    }
 
     // ユーザー検索
     const user = await prisma.salesStaff.findUnique({

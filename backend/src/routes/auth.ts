@@ -7,6 +7,8 @@
 import { Router } from 'express';
 import { login, logout, me } from '../controllers/auth';
 import { authenticate } from '../middlewares/auth';
+import { validate } from '../middlewares/validate';
+import { loginSchema } from '../validators/auth.schemas';
 
 const router = Router();
 
@@ -14,7 +16,7 @@ const router = Router();
  * POST /api/v1/auth/login
  * ログイン
  */
-router.post('/login', login);
+router.post('/login', validate(loginSchema), login);
 
 /**
  * POST /api/v1/auth/logout
