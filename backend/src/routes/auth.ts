@@ -5,7 +5,7 @@
  */
 
 import { Router } from 'express';
-import { login, logout } from '../controllers/auth';
+import { login, logout, me } from '../controllers/auth';
 import { authenticate } from '../middlewares/auth';
 
 const router = Router();
@@ -21,5 +21,11 @@ router.post('/login', login);
  * ログアウト（認証必要）
  */
 router.post('/logout', authenticate, logout);
+
+/**
+ * GET /api/v1/auth/me
+ * 認証状態確認（現在のユーザー情報取得）
+ */
+router.get('/me', authenticate, me);
 
 export default router;

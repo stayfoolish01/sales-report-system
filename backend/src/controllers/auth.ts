@@ -141,3 +141,80 @@ export const logout = async (_req: Request, res: Response): Promise<void> => {
     });
   }
 };
+
+/**
+ * 認証状態確認（現在のユーザー情報取得）
+ *
+ * GET /api/v1/auth/me
+ *
+ * JWTトークンから現在のユーザー情報を取得して返却します。
+ */
+export const me = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // authenticateミドルウェアでreq.userに認証情報が格納されている
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: '認証が必要です',
+        },
+      });
+      return;
+    }
+
+    // データベースから最新のユーザー情報を取得
+    const user = await prisma.salesStaff.findUnique({
+      where: { salesId: req.user.salesId },
+      include: {
+        manager: {
+          select: {
+            salesId: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        error: {
+          code: 'USER_NOT_FOUND',
+          message: 'ユーザーが見つかりません',
+        },
+      });
+      return;
+    }
+
+    // レスポンス
+    res.json({
+      success: true,
+      data: {
+        user: {
+          sales_id: user.salesId,
+          name: user.name,
+          email: user.email,
+          department: user.department,
+          position: user.position,
+          role: user.role.toLowerCase(),
+          manager: user.manager
+            ? {
+                sales_id: user.manager.salesId,
+                name: user.manager.name,
+              }
+            : null,
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Get current user error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'ユーザー情報取得中にエラーが発生しました',
+      },
+    });
+  }
+};
