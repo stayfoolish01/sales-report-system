@@ -111,3 +111,33 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     });
   }
 };
+
+/**
+ * ログアウト
+ *
+ * POST /api/v1/auth/logout
+ *
+ * JWTはステートレスなため、サーバー側では特別な処理は不要。
+ * クライアント側でトークンを削除することでログアウトを実現。
+ */
+export const logout = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    // JWTベースの認証では、サーバー側でトークンを無効化できない
+    // クライアント側でトークンを削除する必要がある
+    // 将来的にトークンブラックリストを実装する場合はここで処理
+
+    res.json({
+      success: true,
+      message: 'ログアウトしました',
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'ログアウト処理中にエラーが発生しました',
+      },
+    });
+  }
+};
