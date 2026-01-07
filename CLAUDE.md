@@ -158,28 +158,180 @@ RESTful APIの詳細仕様（エンドポイント、リクエスト・レスポ
 
 ## 開発フロー
 
+### Git/GitHub ワークフロー
+
+このプロジェクトでは**プルリクエスト（PR）ベース**の開発フローを採用しています。
+
+#### 基本フロー
+
+```
+1. GitHub Issueを選ぶ
+   ↓
+2. ブランチを作成（feature/issue-番号-説明）
+   ↓
+3. 実装
+   ↓
+4. コミット（Issue番号を含める）
+   ↓
+5. GitHubにプッシュ
+   ↓
+6. プルリクエスト作成（Closes #番号）
+   ↓
+7. レビュー（セルフレビュー）
+   ↓
+8. マージ
+   ↓
+9. Issueが自動的にClose
+   ↓
+10. ブランチ削除
+```
+
+#### 詳細な手順
+
+**1. Issueを選ぶ**
+```bash
+# GitHub Issues または Projects ボードから選択
+# 優先度: priority: high > medium > low
+# フェーズ: Phase 1 → Phase 2 → Phase 3 → Phase 4
+```
+
+**2. ブランチを作成**
+```bash
+git checkout master
+git pull origin master
+git checkout -b feature/issue-1-prisma-migration
+```
+
+**ブランチ命名規則:**
+- `feature/issue-{番号}-{簡単な説明}`
+- `bugfix/issue-{番号}-{簡単な説明}`
+
+**3. 実装**
+- Issueの完了条件を確認
+- 参照ドキュメント（API仕様書、画面定義書等）を参照
+
+**4. コミット**
+```bash
+git add .
+git commit -m "feat: Prismaマイグレーション実行とDB初期化 #1"
+```
+
+**コミットメッセージ形式:**
+```
+<type>: <subject> #<issue番号>
+
+type:
+- feat: 新機能
+- fix: バグ修正
+- docs: ドキュメント
+- style: コードスタイル
+- refactor: リファクタリング
+- test: テスト追加・修正
+- chore: ビルド・ツール関連
+```
+
+**5. プッシュ**
+```bash
+git push origin feature/issue-1-prisma-migration
+```
+
+**6. プルリクエスト作成**
+```bash
+gh pr create \
+  --title "feat: Prismaマイグレーション実行とDB初期化" \
+  --body "Closes #1
+
+## 概要
+Prismaマイグレーションを実行し、データベースを初期化しました。
+
+## 変更内容
+- prisma migrate devを実行
+- 5つのテーブルが作成されることを確認
+
+## テスト
+- [x] マイグレーションが正常に完了
+- [x] テーブルが作成された"
+```
+
+**PRの本文に必ず含めるもの:**
+- `Closes #番号` - マージ時にIssueを自動Close
+- 概要
+- 変更内容
+- テスト結果
+
+**7. レビュー**
+- コードが動作するか
+- コーディング規約に従っているか
+- セキュリティ上の問題がないか
+
+**8. マージ**
+```bash
+gh pr merge --merge
+```
+
+**9. Issueが自動Close**
+- `Closes #番号` により自動的にCloseされる
+- GitHub Projectsのカードも自動的に「Done」に移動
+
+**10. ブランチ削除**
+```bash
+git checkout master
+git pull origin master
+git branch -d feature/issue-1-prisma-migration
+```
+
 ### 新機能追加時
-1. 要件定義書で仕様を確認
-2. 画面定義書でUI/UXを確認
-3. API仕様書でエンドポイント設計を確認
-4. バックエンド実装
-5. フロントエンド実装
-6. テスト仕様書に基づいてテスト実装・実行
-7. コードレビュー
+1. GitHub Issueを確認
+2. 要件定義書で仕様を確認
+3. 画面定義書でUI/UXを確認
+4. API仕様書でエンドポイント設計を確認
+5. ブランチ作成
+6. バックエンド実装
+7. フロントエンド実装
+8. テスト仕様書に基づいてテスト実装・実行
+9. プルリクエスト作成
+10. コードレビュー
+11. マージ
 
 ### 不具合修正時
-1. テスト仕様書で関連テストケースを確認
-2. 不具合の原因を特定（仕様書と照らし合わせ）
-3. 修正実装
-4. 関連テストケースを再実行
-5. リグレッションテスト
+1. GitHub Issueを作成（バグ報告テンプレート使用）
+2. テスト仕様書で関連テストケースを確認
+3. 不具合の原因を特定（仕様書と照らし合わせ）
+4. ブランチ作成（`bugfix/issue-番号-説明`）
+5. 修正実装
+6. 関連テストケースを再実行
+7. リグレッションテスト
+8. プルリクエスト作成
+9. マージ
 
 ### 仕様変更時
 1. **必ず該当する仕様書を更新**
 2. 影響範囲を調査（データベース、API、画面、テスト）
 3. 変更履歴を仕様書に記録
-4. 関連する実装をすべて更新
-5. テストケースを追加・更新
+4. GitHub Issueを作成
+5. 関連する実装をすべて更新
+6. テストケースを追加・更新
+7. プルリクエスト作成（複数に分けることも検討）
+
+### タスク管理
+
+**GitHub Issues + Projects を使用:**
+- **Issues**: 全80タスクが作成済み（Phase 1-4）
+- **Projects**: カンバンボードで進捗管理
+- **Milestones**: Phase 1-4の進捗率を可視化
+
+**確認先:**
+- Issues: https://github.com/stayfoolish01/sales-report-system/issues
+- Projects: https://github.com/users/stayfoolish01/projects
+- Milestones: https://github.com/stayfoolish01/sales-report-system/milestones
+
+**タスク一覧:**
+- [TASKS.md](TASKS.md) - 全80タスクの詳細リスト
+
+**開発の進め方:**
+- Phase 1から順番に進める
+- 各IssueをPR経由でCloseしていく
+- Milestonesで進捗を確認
 
 ## 技術スタック
 
