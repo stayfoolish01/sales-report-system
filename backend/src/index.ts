@@ -9,11 +9,22 @@ import customersRoutes from './routes/customers';
 import statisticsRoutes from './routes/statistics';
 import salesStaffRoutes from './routes/salesStaff';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler';
+import {
+  helmetMiddleware,
+  generalRateLimiter,
+  additionalSecurityHeaders,
+  sanitizeInput,
+} from './middlewares/security';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Security Middleware
+app.use(helmetMiddleware);
+app.use(additionalSecurityHeaders);
+app.use(generalRateLimiter);
 
 // Middleware
 app.use(cors({
@@ -22,6 +33,7 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(sanitizeInput);
 
 // Health check endpoint
 app.get('/health', (_req, res) => {
