@@ -8,6 +8,7 @@ import commentsRoutes from './routes/comments';
 import customersRoutes from './routes/customers';
 import statisticsRoutes from './routes/statistics';
 import salesStaffRoutes from './routes/salesStaff';
+import metricsRoutes from './routes/metrics';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler';
 import {
   helmetMiddleware,
@@ -15,11 +16,15 @@ import {
   additionalSecurityHeaders,
   sanitizeInput,
 } from './middlewares/security';
+import { responseTimeMiddleware } from './middlewares/responseTime';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Response time measurement (must be first to measure accurately)
+app.use(responseTimeMiddleware);
 
 // Security Middleware
 app.use(helmetMiddleware);
@@ -52,6 +57,7 @@ app.use('/api/v1/reports/:reportId/comments', commentsRoutes);
 app.use('/api/v1/customers', customersRoutes);
 app.use('/api/v1/statistics', statisticsRoutes);
 app.use('/api/v1/sales-staff', salesStaffRoutes);
+app.use('/api/v1/metrics', metricsRoutes);
 
 // 404 handler - すべてのルートの後に配置
 app.use(notFoundHandler);

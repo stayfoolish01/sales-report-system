@@ -55,6 +55,11 @@ model DailyReport {
   comments     Comment[]
 
   @@unique([salesId, reportDate])
+  @@index([salesId])
+  @@index([reportDate])
+  @@index([status])
+  @@index([salesId, status])
+  @@index([reportDate, status])
   @@map("daily_report")
 }
 
@@ -77,6 +82,9 @@ model VisitRecord {
   report   DailyReport @relation(fields: [reportId], references: [reportId], onDelete: Cascade)
   customer Customer    @relation(fields: [customerId], references: [customerId], onDelete: Restrict)
 
+  @@index([reportId])
+  @@index([customerId])
+  @@index([reportId, visitOrder])
   @@map("visit_record")
 }
 
@@ -95,6 +103,8 @@ model Customer {
   // Relations
   visitRecords VisitRecord[]
 
+  @@index([customerName])
+  @@index([companyName])
   @@map("customer")
 }
 
@@ -111,6 +121,9 @@ model Comment {
   report    DailyReport @relation(fields: [reportId], references: [reportId], onDelete: Cascade)
   commenter SalesStaff  @relation(fields: [commenterId], references: [salesId], onDelete: Cascade)
 
+  @@index([reportId])
+  @@index([commenterId])
+  @@index([reportId, createdAt])
   @@map("comment")
 }
 
