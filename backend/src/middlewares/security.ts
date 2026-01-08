@@ -38,11 +38,14 @@ export const helmetMiddleware = helmet({
 /**
  * レート制限ミドルウェア（全体）
  *
- * 15分間に100リクエストまで許可
+ * 開発環境: 15分間に1000リクエストまで許可
+ * 本番環境: 15分間に100リクエストまで許可
  */
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
 export const generalRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15分
-  max: 100, // 最大リクエスト数
+  max: isDevelopment ? 1000 : 100, // 開発環境では緩和
   message: {
     success: false,
     error: {
@@ -62,11 +65,12 @@ export const generalRateLimiter = rateLimit({
  * レート制限ミドルウェア（認証エンドポイント用）
  *
  * ブルートフォース攻撃対策として、ログイン試行を制限
- * 15分間に5回まで許可
+ * 開発環境: 15分間に100回まで許可
+ * 本番環境: 15分間に5回まで許可
  */
 export const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15分
-  max: 5, // 最大リクエスト数
+  max: isDevelopment ? 100 : 5, // 開発環境では緩和
   message: {
     success: false,
     error: {

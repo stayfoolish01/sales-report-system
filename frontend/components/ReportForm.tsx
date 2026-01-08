@@ -112,7 +112,9 @@ export function ReportForm({
       await onSubmit(formData, isDraft);
     } catch (error) {
       console.error('Failed to submit report:', error);
-      setErrors({ general: '日報の保存に失敗しました' });
+      // エラーメッセージを取得（Errorオブジェクトならmessageを使用）
+      const errorMessage = error instanceof Error ? error.message : '日報の保存に失敗しました';
+      setErrors({ general: errorMessage });
     }
   };
 

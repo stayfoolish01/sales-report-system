@@ -7,6 +7,25 @@
 import { z } from 'zod';
 
 /**
+ * 訪問記録のバリデーションスキーマ
+ */
+const visitSchema = z.object({
+  customer_id: z.number({
+    required_error: '顧客IDは必須です',
+    invalid_type_error: '顧客IDは数値である必要があります',
+  }),
+  content: z
+    .string({
+      invalid_type_error: '訪問内容は文字列である必要があります',
+    })
+    .max(10000, {
+      message: '訪問内容は10000文字以内で入力してください',
+    })
+    .optional()
+    .default(''),
+});
+
+/**
  * 日報作成リクエストのバリデーションスキーマ
  *
  * POST /api/v1/reports
@@ -44,6 +63,7 @@ export const createReportSchema = z.object({
     })
     .optional()
     .default('DRAFT'),
+  visits: z.array(visitSchema).optional(),
 });
 
 /**

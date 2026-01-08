@@ -74,12 +74,24 @@ Settings → Environment Variables で設定:
 
 ## 3. 本番環境チェックリスト
 
-### セキュリティ
+### セキュリティ（重要度順）
 
-- [ ] JWT_SECRET が十分に長いランダム文字列である
-- [ ] ALLOWED_ORIGINS が正しく設定されている
+#### 🔴 Critical（必須対応）
+- [ ] **JWT_SECRET** が暗号学的に安全なランダム文字列（64文字以上推奨）
+  ```bash
+  # 生成コマンド
+  node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+  ```
+- [ ] **DATABASE_URL** でデフォルトパスワード(`postgres:postgres`)を使用していない
+
+#### 🟠 High（デプロイ前に対応）
+- [ ] ALLOWED_ORIGINS が正しく設定されている（本番フロントエンドURLのみ）
 - [ ] HTTPS が有効になっている
 - [ ] 環境変数に機密情報が直接記載されていない
+
+#### 🟡 Medium（運用開始前に対応）
+- [ ] デバッグログが無効化されている（`console.log`の削除）
+- [ ] エラーメッセージにスタックトレースが含まれない（`NODE_ENV=production`）
 
 ### データベース
 

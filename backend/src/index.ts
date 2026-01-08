@@ -9,6 +9,7 @@ import customersRoutes from './routes/customers';
 import statisticsRoutes from './routes/statistics';
 import salesStaffRoutes from './routes/salesStaff';
 import metricsRoutes from './routes/metrics';
+import dashboardRoutes from './routes/dashboard';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler';
 import {
   helmetMiddleware,
@@ -58,6 +59,7 @@ app.use('/api/v1/customers', customersRoutes);
 app.use('/api/v1/statistics', statisticsRoutes);
 app.use('/api/v1/sales-staff', salesStaffRoutes);
 app.use('/api/v1/metrics', metricsRoutes);
+app.use('/api/v1/dashboard', dashboardRoutes);
 
 // 404 handler - すべてのルートの後に配置
 app.use(notFoundHandler);

@@ -27,10 +27,10 @@ export async function logout(): Promise<void> {
 
 // 認証状態確認API
 export async function getMe(): Promise<User> {
-  const response = await apiClient.get<{ success: boolean; data: User }>(
+  const response = await apiClient.get<{ success: boolean; data: { user: User } }>(
     '/auth/me'
   );
-  return response.data.data;
+  return response.data.data.user;
 }
 
 // エラーレスポンスからメッセージを取得

@@ -22,13 +22,17 @@ export const listReports = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { page = 1, limit = 10, start_date, end_date, status } = req.query as {
-      page?: number;
-      limit?: number;
+    const { page: pageStr = '1', limit: limitStr = '10', start_date, end_date, status } = req.query as {
+      page?: string;
+      limit?: string;
       start_date?: string;
       end_date?: string;
       status?: Status;
     };
+
+    // クエリパラメータを数値に変換
+    const page = parseInt(pageStr, 10) || 1;
+    const limit = parseInt(limitStr, 10) || 10;
 
     const salesId = req.user!.salesId;
     const isAdmin = req.user!.role === 'ADMIN';
@@ -256,7 +260,7 @@ export const createReport = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { report_date, problem, plan, status } = req.body;
+    const { report_date, problem, plan, status, visits } = req.body;
     const salesId = req.user!.salesId;
 
     // 同じ日付の日報が既に存在するかチェック
@@ -273,25 +277,66 @@ export const createReport = async (
       throw new ValidationError('指定された日付の日報は既に存在します');
     }
 
-    // 日報を作成
-    const report = await prisma.dailyReport.create({
-      data: {
-        salesId,
-        reportDate: new Date(report_date),
-        problem: problem || null,
-        plan: plan || null,
-        status: status || 'DRAFT',
-      },
-      include: {
-        salesStaff: {
-          select: {
-            salesId: true,
-            name: true,
-            department: true,
+    // デバッグログ
+    console.log('Creating report with visits:', JSON.stringify(visits));
+
+    // 日報と訪問記録をトランザクションで作成
+    const report = await prisma.$transaction(async (tx) => {
+      // 日報を作成
+      const newReport = await tx.dailyReport.create({
+        data: {
+          salesId,
+          reportDate: new Date(report_date),
+          problem: problem || null,
+          plan: plan || null,
+          status: status || 'DRAFT',
+        },
+      });
+
+      // 訪問記録がある場合は作成
+      if (visits && Array.isArray(visits) && visits.length > 0) {
+        await tx.visitRecord.createMany({
+          data: visits.map((visit: { customer_id: number; content: string }, index: number) => ({
+            reportId: newReport.reportId,
+            customerId: visit.customer_id,
+            visitContent: visit.content || '',
+            visitOrder: index + 1,
+          })),
+        });
+      }
+
+      // 作成した日報を関連データと一緒に取得
+      return tx.dailyReport.findUnique({
+        where: { reportId: newReport.reportId },
+        include: {
+          salesStaff: {
+            select: {
+              salesId: true,
+              name: true,
+              department: true,
+            },
+          },
+          visitRecords: {
+            include: {
+              customer: {
+                select: {
+                  customerId: true,
+                  customerName: true,
+                  companyName: true,
+                },
+              },
+            },
+            orderBy: {
+              visitOrder: 'asc',
+            },
           },
         },
-      },
+      });
     });
+
+    if (!report) {
+      throw new ValidationError('日報の作成に失敗しました');
+    }
 
     // レスポンス形式に変換
     const responseData = {
@@ -307,6 +352,16 @@ export const createReport = async (
         name: report.salesStaff.name,
         department: report.salesStaff.department,
       },
+      visit_records: report.visitRecords.map((visit) => ({
+        visit_id: visit.visitId,
+        visit_content: visit.visitContent,
+        visit_order: visit.visitOrder,
+        customer: {
+          customer_id: visit.customer.customerId,
+          customer_name: visit.customer.customerName,
+          company_name: visit.customer.companyName,
+        },
+      })),
     };
 
     res.status(201).json(createSuccessResponse(responseData, '日報を作成しました'));

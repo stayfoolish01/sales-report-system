@@ -11,71 +11,16 @@ import { SimplePagination } from '@/components/Pagination';
 import { Loading } from '@/components/Loading';
 import { EmptyState } from '@/components/ErrorMessage';
 import { useAuthStore } from '@/lib/stores/authStore';
+import { reportsApi } from '@/lib/api/reports';
+import { salesStaffApi } from '@/lib/api/salesStaff';
 import type { ReportListItem } from '@/lib/types/report';
 
-// モックデータ（API実装後に削除）
-const mockReports: ReportListItem[] = [
-  {
-    report_id: 1,
-    sales_id: 1,
-    sales_name: '山田太郎',
-    report_date: '2026-01-07',
-    status: 'submitted',
-    visit_count: 2,
-    customers: ['株式会社ABC', '株式会社XYZ'],
-    comment_count: 2,
-    has_unread_comments: true,
-    created_at: '2026-01-07T09:00:00Z',
-    updated_at: '2026-01-07T18:30:00Z',
-  },
-  {
-    report_id: 2,
-    sales_id: 1,
-    sales_name: '山田太郎',
-    report_date: '2026-01-06',
-    status: 'submitted',
-    visit_count: 1,
-    customers: ['株式会社DEF'],
-    comment_count: 1,
-    has_unread_comments: false,
-    created_at: '2026-01-06T09:00:00Z',
-    updated_at: '2026-01-06T18:00:00Z',
-  },
-  {
-    report_id: 3,
-    sales_id: 1,
-    sales_name: '山田太郎',
-    report_date: '2026-01-05',
-    status: 'draft',
-    visit_count: 1,
-    customers: ['株式会社GHI'],
-    comment_count: 0,
-    has_unread_comments: false,
-    created_at: '2026-01-05T09:00:00Z',
-    updated_at: '2026-01-05T17:00:00Z',
-  },
-  {
-    report_id: 4,
-    sales_id: 2,
-    sales_name: '鈴木一郎',
-    report_date: '2026-01-07',
-    status: 'submitted',
-    visit_count: 3,
-    customers: ['株式会社JKL', '株式会社MNO', '株式会社PQR', '株式会社STU'],
-    comment_count: 0,
-    has_unread_comments: false,
-    created_at: '2026-01-07T09:00:00Z',
-    updated_at: '2026-01-07T19:00:00Z',
-  },
-];
-
-const mockSalesOptions = [
-  { sales_id: 1, name: '山田太郎' },
-  { sales_id: 2, name: '鈴木一郎' },
-  { sales_id: 3, name: '佐藤花子' },
-];
-
 const PAGE_SIZE = 10;
+
+interface SalesOption {
+  sales_id: number;
+  name: string;
+}
 
 export default function ReportsPage() {
   const router = useRouter();
@@ -86,6 +31,7 @@ export default function ReportsPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [salesOptions, setSalesOptions] = useState<SalesOption[]>([]);
   const [searchParams, setSearchParams] = useState<ReportSearchParams>({
     dateRange: {
       startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
@@ -96,59 +42,105 @@ export default function ReportsPage() {
     status: 'all',
   });
 
-  // 日報一覧を取得（モック）
+  // 営業担当者一覧を取得（管理者のみ）
+  useEffect(() => {
+    const fetchSalesStaff = async () => {
+      if (!isAdmin) return;
+      try {
+        const response = await salesStaffApi.list({ limit: 100 });
+        if (response.success && response.data) {
+          // APIレスポンスの形式: { items: [...], pagination: {...} }
+          const items = response.data.items || response.data || [];
+          setSalesOptions(
+            items.map((staff: { sales_id: number; name: string }) => ({
+              sales_id: staff.sales_id,
+              name: staff.name,
+            }))
+          );
+        }
+      } catch (error) {
+        console.error('Failed to fetch sales staff:', error);
+      }
+    };
+    fetchSalesStaff();
+  }, [isAdmin]);
+
+  // 日報一覧を取得
   const fetchReports = useCallback(async () => {
     setIsLoading(true);
     try {
-      // TODO: APIからデータを取得
-      // const response = await reportsApi.getReports({
-      //   ...searchParams,
-      //   page: currentPage,
-      //   pageSize: PAGE_SIZE,
-      // });
+      const params: Record<string, string | number> = {
+        page: currentPage,
+        limit: PAGE_SIZE,
+      };
 
-      // モックデータをフィルタリング
-      let filtered = [...mockReports];
-
-      // ステータスフィルター
-      if (searchParams.status !== 'all') {
-        filtered = filtered.filter((r) => r.status === searchParams.status);
-      }
-
-      // 営業担当者フィルター
-      if (searchParams.salesId) {
-        filtered = filtered.filter((r) => r.sales_id === searchParams.salesId);
-      }
-
-      // 顧客名フィルター
-      if (searchParams.customerName) {
-        filtered = filtered.filter((r) =>
-          r.customers.some((c) =>
-            c.toLowerCase().includes(searchParams.customerName.toLowerCase())
-          )
-        );
-      }
-
-      // 日付範囲フィルター
       if (searchParams.dateRange.startDate) {
-        filtered = filtered.filter(
-          (r) => r.report_date >= searchParams.dateRange.startDate!
-        );
+        params.start_date = searchParams.dateRange.startDate;
       }
       if (searchParams.dateRange.endDate) {
-        filtered = filtered.filter(
-          (r) => r.report_date <= searchParams.dateRange.endDate!
-        );
+        params.end_date = searchParams.dateRange.endDate;
+      }
+      if (searchParams.status !== 'all') {
+        params.status = searchParams.status;
+      }
+      if (searchParams.salesId) {
+        params.sales_id = searchParams.salesId;
       }
 
-      // ページネーション
-      const start = (currentPage - 1) * PAGE_SIZE;
-      const end = start + PAGE_SIZE;
+      const response = await reportsApi.list(params);
 
-      setTotalCount(filtered.length);
-      setReports(filtered.slice(start, end));
+      if (response.success && response.data) {
+        // APIレスポンスの形式: { items: [...], pagination: {...} }
+        const items = response.data.items || response.data || [];
+        const pagination = response.data.pagination || response.pagination;
+
+        // APIレスポンスをフロントエンドの型に変換
+        const mappedReports: ReportListItem[] = items.map(
+          (report: {
+            report_id: number;
+            sales_id?: number;
+            sales_staff?: { sales_id: number; name: string; department?: string };
+            report_date: string;
+            status: string;
+            visit_records?: { customer?: { company_name: string } }[];
+            comment_count?: number;
+            created_at: string;
+            updated_at: string;
+          }) => ({
+            report_id: report.report_id,
+            sales_id: report.sales_id || report.sales_staff?.sales_id || 0,
+            sales_name: report.sales_staff?.name || '',
+            report_date: report.report_date,
+            status: report.status,
+            visit_count: report.visit_records?.length || 0,
+            customers: report.visit_records?.map(
+              (v: { customer?: { company_name: string } }) =>
+                v.customer?.company_name || ''
+            ).filter(Boolean) || [],
+            comment_count: report.comment_count || 0,
+            has_unread_comments: false,
+            created_at: report.created_at,
+            updated_at: report.updated_at,
+          })
+        );
+
+        // 顧客名フィルター（クライアントサイド）
+        let filtered = mappedReports;
+        if (searchParams.customerName) {
+          filtered = mappedReports.filter((r) =>
+            r.customers.some((c) =>
+              c.toLowerCase().includes(searchParams.customerName.toLowerCase())
+            )
+          );
+        }
+
+        setReports(filtered);
+        setTotalCount(pagination?.total || filtered.length);
+      }
     } catch (error) {
       console.error('Failed to fetch reports:', error);
+      setReports([]);
+      setTotalCount(0);
     } finally {
       setIsLoading(false);
     }
@@ -189,7 +181,7 @@ export default function ReportsPage() {
       <div className="rounded-lg border bg-card p-4">
         <ReportSearchForm
           initialValues={searchParams}
-          salesOptions={isAdmin ? mockSalesOptions : []}
+          salesOptions={isAdmin ? salesOptions : []}
           showSalesFilter={isAdmin}
           onSearch={handleSearch}
           isLoading={isLoading}

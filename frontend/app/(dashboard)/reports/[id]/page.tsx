@@ -15,84 +15,25 @@ import {
   Clock,
   CheckCircle,
   FileEdit,
+  Send,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Loading } from '@/components/Loading';
 import { PageError } from '@/components/ErrorMessage';
 import { CommentSection } from '@/components/CommentSection';
+import { AxiosError } from 'axios';
 import { useAuthStore } from '@/lib/stores/authStore';
+import { reportsApi } from '@/lib/api/reports';
 import type { ReportDetail, ReportStatus, Comment } from '@/lib/types/report';
 
-// モックデータ（API実装後に削除）
-const mockReportDetail: ReportDetail = {
-  report_id: 1,
-  sales: {
-    sales_id: 1,
-    name: '山田太郎',
-    department: '営業一部',
-  },
-  report_date: '2026-01-07',
-  status: 'submitted',
-  problem: 'ABC社の決裁者へのアプローチ方法について相談したい。',
-  plan: 'ABC社：提案資料のブラッシュアップ\nXYZ社：見積書の提出',
-  visit_records: [
-    {
-      visit_id: 1,
-      customer: {
-        customer_id: 1,
-        customer_name: '鈴木一郎',
-        company_name: '株式会社ABC',
-        department: '営業部',
-      },
-      visit_content:
-        '新商品の提案を実施。好感触だが決裁者との面談が必要。次回は来週の部会で同席いただく予定。',
-      visit_order: 1,
-      created_at: '2026-01-07T10:00:00Z',
-    },
-    {
-      visit_id: 2,
-      customer: {
-        customer_id: 2,
-        customer_name: '田中花子',
-        company_name: '株式会社XYZ',
-        department: '総務部',
-      },
-      visit_content: '契約更新の商談。価格交渉あり。来週までに見積書を提出予定。',
-      visit_order: 2,
-      created_at: '2026-01-07T14:00:00Z',
-    },
-  ],
-  comments: {
-    problem: [
-      {
-        comment_id: 1,
-        comment_type: 'problem',
-        comment_content: '来週の部会で同席するので、その際に紹介します。',
-        commenter: {
-          sales_id: 10,
-          name: '佐藤部長',
-          position: '部長',
-        },
-        created_at: '2026-01-07T20:15:00Z',
-      },
-    ],
-    plan: [
-      {
-        comment_id: 2,
-        comment_type: 'plan',
-        comment_content: '了解です。頑張ってください。',
-        commenter: {
-          sales_id: 10,
-          name: '佐藤部長',
-          position: '部長',
-        },
-        created_at: '2026-01-07T20:16:00Z',
-      },
-    ],
-  },
-  created_at: '2026-01-07T09:00:00Z',
-  updated_at: '2026-01-07T18:30:00Z',
-};
+// APIエラーレスポンスの型
+interface ApiErrorResponse {
+  success: false;
+  error: {
+    code: string;
+    message: string;
+  };
+}
 
 export default function ReportDetailPage() {
   const params = useParams();
@@ -105,25 +46,124 @@ export default function ReportDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [isCommentLoading, setIsCommentLoading] = useState(false);
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // 所有者判定と権限（reportが更新されるたびに再計算される）
   const currentUserId = user?.sales_id ?? 0;
-  const isOwner = user?.sales_id === report?.sales.sales_id;
+  const isOwner = report !== null && user?.sales_id === report.sales.sales_id;
   const canEdit = isOwner && report?.status === 'draft';
   const canDelete = isOwner;
+  const canSubmit = isOwner && report?.status === 'draft';
 
   const fetchReport = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      // TODO: APIからデータを取得
-      // const response = await reportsApi.getReport(reportId);
-      // setReport(response.data);
-
-      // モックデータを使用
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setReport(mockReportDetail);
+      const response = await reportsApi.get(parseInt(reportId, 10));
+      if (response.success && response.data) {
+        // APIレスポンスをフロントエンドの型に変換
+        const apiData = response.data;
+        const reportDetail: ReportDetail = {
+          report_id: apiData.report_id,
+          sales: {
+            sales_id: apiData.sales_staff?.sales_id || apiData.sales_id || 0,
+            name: apiData.sales_staff?.name || '',
+            department: apiData.sales_staff?.department || '',
+          },
+          report_date: apiData.report_date,
+          status: apiData.status?.toLowerCase() as ReportStatus,
+          problem: apiData.problem || '',
+          plan: apiData.plan || '',
+          visit_records: (apiData.visit_records || []).map((record: {
+            visit_id: number;
+            customer?: {
+              customer_id: number;
+              customer_name?: string;
+              company_name?: string;
+              department?: string;
+            };
+            visit_content?: string;
+            content?: string;
+            visit_order?: number;
+            created_at?: string;
+          }) => ({
+            visit_id: record.visit_id,
+            customer: {
+              customer_id: record.customer?.customer_id || 0,
+              customer_name: record.customer?.customer_name || '',
+              company_name: record.customer?.company_name || '',
+              department: record.customer?.department || '',
+            },
+            visit_content: record.visit_content || record.content || '',
+            visit_order: record.visit_order || 0,
+            created_at: record.created_at || '',
+          })),
+          comments: {
+            problem: (apiData.comments || [])
+              .filter((c: { comment_type: string }) => c.comment_type === 'problem')
+              .map((c: {
+                comment_id: number;
+                comment_type: string;
+                comment_content?: string;
+                content?: string;
+                commenter?: { sales_id: number; name: string; position?: string };
+                sales_staff?: { sales_id: number; name: string; position?: string };
+                created_at: string;
+              }) => ({
+                comment_id: c.comment_id,
+                comment_type: c.comment_type,
+                comment_content: c.comment_content || c.content || '',
+                commenter: {
+                  sales_id: c.commenter?.sales_id || c.sales_staff?.sales_id || 0,
+                  name: c.commenter?.name || c.sales_staff?.name || '',
+                  position: c.commenter?.position || c.sales_staff?.position,
+                },
+                created_at: c.created_at,
+              })),
+            plan: (apiData.comments || [])
+              .filter((c: { comment_type: string }) => c.comment_type === 'plan')
+              .map((c: {
+                comment_id: number;
+                comment_type: string;
+                comment_content?: string;
+                content?: string;
+                commenter?: { sales_id: number; name: string; position?: string };
+                sales_staff?: { sales_id: number; name: string; position?: string };
+                created_at: string;
+              }) => ({
+                comment_id: c.comment_id,
+                comment_type: c.comment_type,
+                comment_content: c.comment_content || c.content || '',
+                commenter: {
+                  sales_id: c.commenter?.sales_id || c.sales_staff?.sales_id || 0,
+                  name: c.commenter?.name || c.sales_staff?.name || '',
+                  position: c.commenter?.position || c.sales_staff?.position,
+                },
+                created_at: c.created_at,
+              })),
+          },
+          created_at: apiData.created_at || '',
+          updated_at: apiData.updated_at || '',
+        };
+        setReport(reportDetail);
+      } else {
+        setError('日報が見つかりません');
+      }
     } catch (err) {
       console.error('Failed to fetch report:', err);
-      setError('日報の取得に失敗しました');
+      // APIエラーからメッセージを抽出
+      if (err instanceof AxiosError && err.response?.data) {
+        const errorData = err.response.data as ApiErrorResponse;
+        if (errorData.error?.message) {
+          setError(errorData.error.message);
+        } else if (err.response.status === 429) {
+          setError('リクエスト回数が制限を超えました。しばらくしてから再度お試しください。');
+        } else {
+          setError('日報の取得に失敗しました');
+        }
+      } else {
+        setError('日報の取得に失敗しました');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -148,6 +188,36 @@ export default function ReportDetailPage() {
     } catch (err) {
       console.error('Failed to delete report:', err);
       alert('日報の削除に失敗しました');
+    }
+  };
+
+  // 日報提出
+  const handleSubmit = async () => {
+    if (!confirm('この日報を提出してもよろしいですか？')) {
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const response = await reportsApi.updateStatus(parseInt(reportId, 10), 'SUBMITTED');
+      if (response.success) {
+        // 提出成功後、日報を再取得して画面を更新
+        await fetchReport();
+        alert('日報を提出しました');
+      }
+    } catch (err) {
+      console.error('Failed to submit report:', err);
+      if (err instanceof AxiosError && err.response?.data) {
+        const errorData = err.response.data as ApiErrorResponse;
+        if (errorData.error?.message) {
+          alert(errorData.error.message);
+        } else {
+          alert('日報の提出に失敗しました');
+        }
+      } else {
+        alert('日報の提出に失敗しました');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -287,6 +357,12 @@ export default function ReportDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {canSubmit && (
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              <Send className="h-4 w-4 mr-2" />
+              {isSubmitting ? '提出中...' : '提出'}
+            </Button>
+          )}
           {canEdit && (
             <Button variant="outline" onClick={handleEdit}>
               <Edit className="h-4 w-4 mr-2" />

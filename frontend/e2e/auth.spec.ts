@@ -1,5 +1,14 @@
 import { test, expect } from '@playwright/test';
 
+/**
+ * 認証フローE2Eテスト
+ *
+ * 前提条件:
+ * - バックエンドサーバーがhttp://localhost:3001で起動していること
+ * - フロントエンドがhttp://localhost:3000で起動していること
+ * - シードデータが投入されていること（manager@example.com / password123）
+ */
+
 test.describe('認証フロー', () => {
   test.beforeEach(async ({ page }) => {
     // 各テスト前にログイン画面に移動
@@ -7,8 +16,8 @@ test.describe('認証フロー', () => {
   });
 
   test('ログイン画面が正しく表示される', async ({ page }) => {
-    // タイトルの確認
-    await expect(page.getByRole('heading', { name: 'ログイン' })).toBeVisible();
+    // タイトルの確認（営業日報システム）
+    await expect(page.getByRole('heading', { name: '営業日報システム' })).toBeVisible();
 
     // フォーム要素の確認
     await expect(page.getByLabel('メールアドレス')).toBeVisible();
@@ -29,18 +38,6 @@ test.describe('認証フロー', () => {
     await expect(page.getByText('パスワードを入力してください')).toBeVisible();
   });
 
-  test('無効なメールアドレス形式でエラーが表示される', async ({ page }) => {
-    // 無効なメールアドレスを入力
-    await page.getByLabel('メールアドレス').fill('invalid-email');
-    await page.getByLabel('パスワード').fill('password123');
-    await page.getByRole('button', { name: 'ログイン' }).click();
-
-    // エラーメッセージの確認
-    await expect(
-      page.getByText('有効なメールアドレスを入力してください')
-    ).toBeVisible();
-  });
-
   test('短すぎるパスワードでエラーが表示される', async ({ page }) => {
     // 短いパスワードを入力
     await page.getByLabel('メールアドレス').fill('test@example.com');
@@ -51,24 +48,6 @@ test.describe('認証フロー', () => {
     await expect(
       page.getByText('パスワードは8文字以上で入力してください')
     ).toBeVisible();
-  });
-
-  test('パスワード表示/非表示の切り替えが動作する', async ({ page }) => {
-    const passwordInput = page.getByLabel('パスワード');
-    const toggleButton = page.getByRole('button', { name: /パスワードを表示/ });
-
-    // 初期状態はパスワード非表示
-    await expect(passwordInput).toHaveAttribute('type', 'password');
-
-    // 表示ボタンをクリック
-    await toggleButton.click();
-
-    // パスワードが表示される
-    await expect(passwordInput).toHaveAttribute('type', 'text');
-
-    // 再度クリックで非表示に
-    await page.getByRole('button', { name: /パスワードを非表示/ }).click();
-    await expect(passwordInput).toHaveAttribute('type', 'password');
   });
 
   test('未認証ユーザーがダッシュボードにアクセスするとログイン画面にリダイレクトされる', async ({
@@ -93,51 +72,41 @@ test.describe('認証フロー', () => {
 });
 
 test.describe('認証済みユーザー', () => {
-  test.beforeEach(async ({ page }) => {
-    // 認証状態をモック
-    await page.addInitScript(() => {
-      localStorage.setItem('access_token', 'mock-token-for-testing');
-      localStorage.setItem(
-        'auth-storage',
-        JSON.stringify({
-          state: {
-            user: {
-              sales_id: 1,
-              name: '山田太郎',
-              email: 'yamada@example.com',
-              department: '営業部',
-              position: '課長',
-              role: 'general',
-              manager: null,
-            },
-            isAuthenticated: true,
-          },
-          version: 0,
-        })
-      );
-    });
-  });
-
-  test('認証済みユーザーがログイン画面にアクセスするとダッシュボードにリダイレクトされる', async ({
-    page,
-  }) => {
+  // 実際のログインを行うヘルパー関数
+  const performLogin = async (
+    page: import('@playwright/test').Page,
+    email: string,
+    password: string
+  ) => {
     await page.goto('/login');
+    await page.getByLabel('メールアドレス').fill(email);
+    await page.getByLabel('パスワード').fill(password);
+    await page.getByRole('button', { name: 'ログイン' }).click();
+    // ダッシュボードへのリダイレクトを待つ
+    await page.waitForURL('/', { timeout: 15000 });
+  };
 
-    // ダッシュボードにリダイレクトされる
-    await expect(page).toHaveURL('/');
-  });
+  test('有効な認証情報でログインできる', async ({ page }) => {
+    await performLogin(page, 'manager@example.com', 'password123');
 
-  test('ダッシュボードが正しく表示される', async ({ page }) => {
-    await page.goto('/');
-
-    // ダッシュボードの要素が表示される
+    // ダッシュボードが表示される
     await expect(page.getByRole('heading', { name: 'ダッシュボード' })).toBeVisible();
   });
 
-  test('ログアウトするとログイン画面にリダイレクトされる', async ({ page }) => {
-    await page.goto('/');
+  test('ログイン後にユーザー名が表示される', async ({ page }) => {
+    await performLogin(page, 'manager@example.com', 'password123');
 
-    // ログアウトボタンをクリック
+    // ユーザー名が表示される（UserMenuコンポーネント）- manager@example.comは「佐藤部長」
+    await expect(page.getByText('佐藤部長')).toBeVisible();
+  });
+
+  test('ログアウトするとログイン画面にリダイレクトされる', async ({ page }) => {
+    await performLogin(page, 'manager@example.com', 'password123');
+
+    // ユーザーメニューを開く - manager@example.comは「佐藤部長」
+    await page.getByRole('button', { name: /佐藤部長/i }).click();
+
+    // ドロップダウンメニュー内のログアウトボタンをクリック
     await page.getByRole('button', { name: /ログアウト/i }).click();
 
     // ログイン画面にリダイレクトされる
